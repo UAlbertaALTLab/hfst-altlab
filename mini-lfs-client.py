@@ -70,7 +70,9 @@ def main():
 
     ## Get raw file from GitHub
 
-    github_url = f"https://github.com/{args.org}/{args.repo}/raw/{args.branch}/{args.path}"
+    github_url = (
+        f"https://github.com/{args.org}/{args.repo}/raw/{args.branch}/{args.path}"
+    )
     print(f"Trying {github_url} …")
     github_response = requests.get(github_url)
     print(f"{github_response.status_code} {github_response.reason}")

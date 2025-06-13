@@ -59,18 +59,35 @@ class RichAnalysis:
     def __init__(self, analysis):
         if isinstance(analysis, Analysis):
             self._tuple = analysis
-        elif (isinstance(analysis, list) or isinstance(analysis, tuple)) and (len(
-            analysis
-        ) == 6 or len(analysis == 3)):
+        elif (isinstance(analysis, list) or isinstance(analysis, tuple)) and (
+            len(analysis) == 6 or len(analysis == 3)
+        ):
             if len(analysis == 3):
                 prefix_tags, lemma, suffix_tags = analysis
                 self._tuple = Analysis(
-                    prefixes=tuple(prefix_tags), lemma=lemma, suffixes=tuple(suffix_tags), prefix_flags=[],lemma_flags=[],suffix_flags=[]
+                    prefixes=tuple(prefix_tags),
+                    lemma=lemma,
+                    suffixes=tuple(suffix_tags),
+                    prefix_flags=[],
+                    lemma_flags=[],
+                    suffix_flags=[],
                 )
             else:
-                prefix_tags, lemma, suffix_tags, prefix_flags, lemma_flags, suffix_flags = analysis
+                (
+                    prefix_tags,
+                    lemma,
+                    suffix_tags,
+                    prefix_flags,
+                    lemma_flags,
+                    suffix_flags,
+                ) = analysis
                 self._tuple = Analysis(
-                    prefixes=tuple(prefix_tags), lemma=lemma, suffixes=tuple(suffix_tags), prefix_flags=prefix_flags,lemma_flags=lemma_flags,suffix_flags=suffix_flags
+                    prefixes=tuple(prefix_tags),
+                    lemma=lemma,
+                    suffixes=tuple(suffix_tags),
+                    prefix_flags=prefix_flags,
+                    lemma_flags=lemma_flags,
+                    suffix_flags=suffix_flags,
                 )
         else:
             raise Exception(f"Unsupported argument: {analysis=!r}")

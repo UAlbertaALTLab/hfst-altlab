@@ -2,14 +2,17 @@
 This file has been imported from https://github.com/UAlbertaALTLab/hfst-optimized-lookup/,
 to act as a compatibility check layer.  Further tests should be incorporated somewhere else.
 """
+
 from pathlib import Path
 import pytest
 
 from . import TransducerFile, Analysis
 
+
 @pytest.fixture(scope="session")
 def project_root_path(request):
     return request.config.rootpath
+
 
 TEST_FST = "crk-relaxed-analyzer-for-dictionary.hfstol"
 
