@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+hfst = "*"
+
+[dev-packages]
+pytest = "*"
+mypy = "*"
+pytest-mypy = "*"
+black = "*"
+requests = "*"
+
+[scripts]
+get-hfstol = "./mini-lfs-client.py UAlbertaALTLab morphodict src/crkeng/resources/fst/crk-relaxed-analyzer-for-dictionary.hfstol"
+test = "pytest --mypy src"
+
+[requires]
+python_version = "3.12"
