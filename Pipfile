@@ -12,6 +12,8 @@ mypy = "*"
 pytest-mypy = "*"
 black = "*"
 requests = "*"
+twine = "*"
+build = "*"
 
 [scripts]
 get-hfstol = "./mini-lfs-client.py UAlbertaALTLab morphodict src/crkeng/resources/fst/crk-relaxed-analyzer-for-dictionary.hfstol"

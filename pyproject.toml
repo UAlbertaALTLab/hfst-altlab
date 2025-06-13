@@ -15,7 +15,7 @@ classifiers = [
     "Text Processing :: Linguistic",
     "Software Development :: Build Tools"
 ]
-license = "Apache"
+license = "Apache-2.0"
 license-files = ["LICENSE"]
 
 [project.urls]
