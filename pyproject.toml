@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hfst-altlab"
-version = "0.0.1.dev0"
+version = "0.0.1.dev2"
 authors = [
     { name="Felipe Bañados Schwerter", email="banadoss@ualberta.ca" },
 ]
@@ -17,6 +17,7 @@ classifiers = [
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
+dependencies = ["hfst"]
 
 [project.urls]
 Homepage = "https://github.com/UAlbertaALTLab/hfst-altlab"
