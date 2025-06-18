@@ -1,7 +1,5 @@
 import hfst
 from pathlib import Path
-from errno import ENOENT
-from os import strerror
 from .types import Analysis
 
 

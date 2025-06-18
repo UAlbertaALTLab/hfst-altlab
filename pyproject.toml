@@ -12,8 +12,8 @@ description = "A python wrapper for accessing Helsinki Finite State Transducers 
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
-    "Text Processing :: Linguistic",
-    "Software Development :: Build Tools"
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Software Development :: Build Tools"
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
