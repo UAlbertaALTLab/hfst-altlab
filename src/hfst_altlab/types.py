@@ -1,4 +1,5 @@
 from typing import NamedTuple, Tuple
+from hfst import is_diacritic
 
 
 class Analysis(NamedTuple):
@@ -49,104 +50,99 @@ class Analysis(NamedTuple):
     """
 
 
-class RichAnalysis:
-    """The one true FST analysis class.
+def _parse_analysis(letters_and_tags: list[str]) -> Analysis:
+    prefix_tags: list[str] = []
+    lemma_chars: list[str] = []
+    suffix_tags: list[str] = []
 
-    Put all your methods for dealing with things like `PV/e+nipâw+V+AI+Cnj+3Pl`
-    here.
-    """
-
-    def __init__(self, analysis):
-        if isinstance(analysis, Analysis):
-            self._tuple = analysis
-        elif (isinstance(analysis, list) or isinstance(analysis, tuple)) and (
-            len(analysis) == 6 or len(analysis == 3)
-        ):
-            if len(analysis == 3):
-                prefix_tags, lemma, suffix_tags = analysis
-                self._tuple = Analysis(
-                    prefixes=tuple(prefix_tags),
-                    lemma=lemma,
-                    suffixes=tuple(suffix_tags),
-                    prefix_flags=[],
-                    lemma_flags=[],
-                    suffix_flags=[],
-                )
+    tag_destination = prefix_tags
+    for symbol in letters_and_tags:
+        if not is_diacritic(symbol):
+            if len(symbol) == 1:
+                lemma_chars.append(symbol)
+                tag_destination = suffix_tags
             else:
-                (
-                    prefix_tags,
-                    lemma,
-                    suffix_tags,
-                    prefix_flags,
-                    lemma_flags,
-                    suffix_flags,
-                ) = analysis
-                self._tuple = Analysis(
-                    prefixes=tuple(prefix_tags),
-                    lemma=lemma,
-                    suffixes=tuple(suffix_tags),
-                    prefix_flags=prefix_flags,
-                    lemma_flags=lemma_flags,
-                    suffix_flags=suffix_flags,
-                )
-        else:
-            raise Exception(f"Unsupported argument: {analysis=!r}")
+                assert len(symbol) > 1
+                tag_destination.append(symbol)
+
+    return Analysis(
+        tuple(prefix_tags),
+        "".join(lemma_chars),
+        tuple(suffix_tags),
+    )
+
+
+class FullAnalysis:
+    weight: float
+    flag_diacritics: list[str]
+    analysis: Analysis
+    standardized: str | None
 
     @property
-    def tuple(self):
-        return self._tuple
+    def prefixes(self) -> tuple[str, ...]:
+        return self.analysis.prefixes
 
     @property
-    def lemma(self):
-        return self._tuple.lemma
+    def lemma(self) -> str:
+        return self.analysis.lemma
 
     @property
-    def prefix_tags(self):
-        return self._tuple.prefixes
+    def suffixes(self) -> tuple[str, ...]:
+        return self.analysis.suffixes
 
-    @property
-    def suffix_tags(self):
-        return self._tuple.suffixes
+    def __init__(
+        self, weight: float, tokens: list[str], standardized: str | None = None
+    ):
+        self.weight = weight
+        self.flag_diacritics = [x for x in tokens if x and x != "@_EPSILON_SYMBOL_@"]
+        self.analysis = _parse_analysis(self.flag_diacritics)
+        self.standardized = standardized
 
-    def generate(self):
-        return strict_generator().lookup(self.smushed())
-
-    def generate_with_morphemes(self, inflection):
-        try:
-            results = strict_generator_with_morpheme_boundaries().lookup(self.smushed())
-            if len(results) != 1:
-                for result in results:
-                    if "".join(re.split(r"[<>]", result)) == inflection:
-                        return re.split(r"[<>]", result)
-                return None
-            return re.split(r"[<>]", results[0])
-        except RuntimeError as e:
-            print("Could not generate morphemes:", e)
-            return []
-
-    def smushed(self):
-        return "".join(self.prefix_tags) + self.lemma + "".join(self.suffix_tags)
-
-    def tag_set(self):
-        return set(self.suffix_tags + self.prefix_tags)
-
-    def tag_intersection_count(self, other):
-        """How many tags does this analysis have in common with another?"""
-        if not isinstance(other, RichAnalysis):
-            raise Exception(f"Unsupported argument: {other=!r}")
-        return len(self.tag_set().intersection(other.tag_set()))
-
-    def __iter__(self):
-        """Allows doing `head, _, tail = rich_analysis`"""
-        return iter(self._tuple)
-
-    def __hash__(self):
-        return hash(self._tuple)
-
-    def __eq__(self, other):
-        if not isinstance(other, RichAnalysis):
-            return NotImplemented
-        return self._tuple == other.tuple
+    def __str__(self):
+        return f"FullAnalysis(weight={self.weight}, prefixes={self.analysis.prefixes}, lemma={self.analysis.lemma}, suffixes={self.analysis.suffixes})"
 
     def __repr__(self):
-        return f"RichAnalysis({[self.prefix_tags, self.lemma, self.suffix_tags]!r})"
+        return f"FullAnalysis(weight={self.weight}, tokens={self.flag_diacritics})"
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return (
+                self.weight == other.weight
+                and self.flag_diacritics == other.flag_diacritics
+            )
+        else:
+            return False
+
+    def as_fst_input(self) -> str:
+        return fst_output_format(self.flag_diacritics)
+
+
+class Wordform:
+    weight: float
+    tokens: list[str]
+    wordform: str
+
+    def __init__(self, weight: float, tokens: list[str]):
+        self.weight = weight
+        self.tokens = tokens
+        self.wordform = "".join(tokens)
+
+    def __str__(self):
+        return self.wordform
+
+    def __repr__(self):
+        return f"Wordform(weight={self.weight}, wordform={self.wordform})"
+
+    def as_fst_input(self):
+        return self.wordform
+
+
+def as_fst_input(data: str | FullAnalysis | Wordform) -> str:
+    if isinstance(data, str):
+        return data
+    else:
+        return data.as_fst_input()
+
+
+def fst_output_format(tokens: list[str]) -> str:
+    return "".join(x for x in tokens if not is_diacritic(x))

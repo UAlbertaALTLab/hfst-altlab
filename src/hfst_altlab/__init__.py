@@ -1,6 +1,8 @@
 import hfst
 from pathlib import Path
-from .types import Analysis
+from .types import Analysis, FullAnalysis, Wordform, as_fst_input, fst_output_format
+from typing import cast
+from collections.abc import Callable
 
 
 class TransducerFile:
@@ -75,35 +77,10 @@ class TransducerFile:
         """
         return ["".join(transduction) for transduction in self.lookup_symbols(input)]
 
-    def weighted_lookup_lemma_with_affixes(
-        self, surface_form: str
-    ) -> list[tuple[float, Analysis]]:
-        """
-        Analyze the input string, returning a list
-        of tuples containing a ``float`` and a :py:class:`types.Analysis` object.
-
-        .. note::
-            this method assumes an analyzer in which all multicharacter symbols
-            represent affixes, and all lexical symbols are contiguous.
-
-
-        :param str string: The string to lookup.
-        :return: list of analyses as :py:class:`types.Analysis`
-            objects, or an empty list if there are no analyses.
-        :rtype: list of :py:class:`types.Analysis`
-        """
-        raw_weighted_analyses = self.weighted_lookup_symbols(surface_form)
-        return [
-            (weight, _parse_analysis(analysis))
-            for weight, analysis in raw_weighted_analyses
-        ]
-
     def lookup_lemma_with_affixes(self, surface_form: str) -> list[Analysis]:
         return [
-            analysis
-            for weight, analysis in self.weighted_lookup_lemma_with_affixes(
-                surface_form
-            )
+            analysis.analysis
+            for analysis in self.weighted_lookup_full_analysis(surface_form)
         ]
 
     def lookup_symbols(self, input: str) -> list[list[str]]:
@@ -117,10 +94,62 @@ class TransducerFile:
         :rtype: list[list[str]]
         """
         return [
-            transduction for weight, transduction in self.weighted_lookup_symbols(input)
+            [x for x in analysis.flag_diacritics if x and not hfst.is_diacritic(x)]
+            for analysis in self.weighted_lookup_full_analysis(input)
         ]
 
-    def weighted_lookup_symbols(self, input: str) -> list[tuple[float, list[str]]]:
+    def _weighted_lookup(self, input: str) -> list[tuple[str, list[str]]]:
+        """
+        Internal Function. Transduce the input string. The result is a list of weighted tranductions. Each
+        weighted tranduction is a tuple with a number for the weight and a list of symbols returned in the model; that is, the symbols are
+        not concatenated into a single string.
+
+        :param str input: The string to lookup.
+        :return:
+        :rtype: list[tuple[float,list[str]]]
+        """
+        return cast(
+            list[tuple[str, list[str]]],
+            self.transducer.lookup(str(input), time_cutoff=self.cutoff, output="raw"),
+        )
+
+    def weighted_lookup_full_analysis(
+        self, wordform: str | Wordform, generator: "TransducerFile" | None = None
+    ) -> list[FullAnalysis]:
+        """
+        Transduce a wordform into a list of analyzed outputs.
+        If a generator is provided, it will incorporate a standardized version of the string when available.
+        That is, it will pass the output to a secondary FST, and check if all the outputs of that "generator" FST match for an output.
+        If so, the output will be marked with the output string in the `standardized` field [See FullAnalysis]
+        :param str input: The string to lookup.
+        :return:
+        :rtype: list[FullAnalysis]
+        """
+        if generator:
+
+            def generate(tokens: list[str]) -> str | None:
+                entry: str | None = None
+                for _, output in generator._weighted_lookup(fst_output_format(tokens)):
+                    candidate = "".join(output)
+                    if entry and entry != candidate:
+                        return None
+                    else:
+                        entry = candidate
+                return entry
+
+        else:
+
+            def generate(tokens: list[str]) -> str | None:
+                return None
+
+        return [
+            FullAnalysis(float(weight), tokens, generate(tokens))
+            for weight, tokens in self._weighted_lookup(as_fst_input(wordform))
+        ]
+
+    def weighted_lookup_full_wordform(
+        self, analysis: str | FullAnalysis
+    ) -> list[Wordform]:
         """
         Transduce the input string. The result is a list of weighted tranductions. Each
         weighted tranduction is a tuple with a float for the weight and a list of symbols returned in the model; that is, the symbols are
@@ -131,30 +160,9 @@ class TransducerFile:
         :rtype: list[tuple[float,list[str]]]
         """
         return [
-            (
-                float(weight),
-                [
-                    symbol
-                    for symbol in symbols
-                    if not hfst.is_diacritic(symbol) and symbol
-                ],
-            )
-            for weight, symbols in self.weighted_lookup_symbols_with_flags(input)
+            Wordform(float(weight), tokens)
+            for weight, tokens in self._weighted_lookup(as_fst_input(analysis))
         ]
-
-    def weighted_lookup_symbols_with_flags(
-        self, input: str
-    ) -> list[tuple[float, list[str]]]:
-        """
-        Transduce the input string, preserving the weight information coming from HFST and separating each symbol
-
-        :param str input: The string to lookup.
-        :return: A list of tuples, each containing the weight(float), and a list of strings, each a language symbol
-        :rtype: list[tuple[float,list[str]]]
-        """
-        return list(
-            self.transducer.lookup(input, time_cutoff=self.cutoff, output="raw")
-        )
 
     def symbol_count(self) -> int:
         """
@@ -167,23 +175,36 @@ class TransducerFile:
         return len(self.transducer.get_alphabet())
 
 
-def _parse_analysis(letters_and_tags: list[str]) -> Analysis:
-    prefix_tags: list[str] = []
-    lemma_chars: list[str] = []
-    suffix_tags: list[str] = []
+class TransducerPair:
+    analyser: TransducerFile
+    generator: TransducerFile
 
-    tag_destination = prefix_tags
-    for symbol in letters_and_tags:
-        if not hfst.is_diacritic(symbol):
-            if len(symbol) == 1:
-                lemma_chars.append(symbol)
-                tag_destination = suffix_tags
-            else:
-                assert len(symbol) > 1
-                tag_destination.append(symbol)
+    def __init__(
+        self, analyser: Path | str, generator: Path | str, search_cutoff: int = 60
+    ):
+        self.analyser = TransducerFile(analyser, search_cutoff)
+        self.generator = TransducerFile(generator, search_cutoff)
 
-    return Analysis(
-        tuple(prefix_tags),
-        "".join(lemma_chars),
-        tuple(suffix_tags),
-    )
+    def analyse(
+        self, input: Wordform | str, distance: None | Callable[[str, str], float] = None
+    ) -> list[FullAnalysis]:
+        candidate = self.analyser.weighted_lookup_full_analysis(input, self.generator)
+        if distance:
+            # If there is a distance function, use that for sorting
+            source = str(input)
+
+            def key(other: FullAnalysis) -> float:
+                if other.standardized is None:
+                    return float("+Infinity")
+                return distance(source, other.standardized)
+
+            candidate.sort(key=key)
+        return candidate
+
+    def generate(self, analysis: FullAnalysis | Analysis | str) -> list[Wordform]:
+        input = (
+            "".join(analysis.prefixes) + analysis.lemma + "".join(analysis.suffixes)
+            if isinstance(analysis, Analysis)
+            else analysis
+        )
+        return self.generator.weighted_lookup_full_wordform(input)
