@@ -18,6 +18,10 @@ class TransducerFile:
     """
 
     def __init__(self, filename: Path | str, search_cutoff: int = 60):
+        """
+        :param filename: The path of the transducer
+        :param search_cutoff: The maximum amount of time (in seconds) that the search will go on for.  The intention of a limit is to avoid search getting stuck.  Defaults to a minute.
+        """
         self.cutoff = search_cutoff
 
         if not Path(filename).exists():
@@ -77,8 +81,10 @@ class TransducerFile:
 
     def bulk_lookup(self, words: list[str]) -> dict[str, set[str]]:
         """
-         Like ``lookup()`` but applied to multiple inputs. Useful for generating multiple
+        Like ``lookup()`` but applied to multiple inputs. Useful for generating multiple
         surface forms.
+
+        .. note:: Backwards-compatible with ``hfst-optimized-lookup``
 
         :param words: list of words to lookup
         :return: a dictionary mapping words in the input to a set of its tranductions
@@ -90,6 +96,8 @@ class TransducerFile:
         Lookup the input string, returning a list of tranductions.  This is
         most similar to using ``hfst-optimized-lookup`` on the command line.
 
+        .. note:: Backwards-compatible with ``hfst-optimized-lookup``
+
         :param input: The string to lookup.
         :return: list of analyses as concatenated strings, or an empty list if the input
             cannot be analyzed.
@@ -97,6 +105,13 @@ class TransducerFile:
         return ["".join(transduction) for transduction in self.lookup_symbols(input)]
 
     def lookup_lemma_with_affixes(self, surface_form: str) -> list[Analysis]:
+        """
+        Like lookup, but separates the results into a tuple of prefixes, a lemma, and a tuple of suffixes.  Expected to be used only on analyser FSTs.
+
+        .. note:: Backwards-compatible with ``hfst-optimized-lookup``
+
+        :param surface_form: The entry to search for.
+        """
         return [
             analysis.analysis
             for analysis in self.weighted_lookup_full_analysis(surface_form)
@@ -108,6 +123,8 @@ class TransducerFile:
         tranduction is a list of symbols returned in the model; that is, the symbols are
         not concatenated into a single string.
 
+        .. note:: Backwards-compatible with ``hfst-optimized-lookup``
+        
         :param input: The string to lookup.
         """
         return [
@@ -133,10 +150,12 @@ class TransducerFile:
         self, wordform: str | Wordform, generator: Optional["TransducerFile"] = None
     ) -> list[FullAnalysis]:
         """
-        Transduce a wordform into a list of analyzed outputs.
+        Transduce a wordform into a list of analyzed outputs.  This method is likely only useful for analyser FSTs.
+
         If a generator is provided, it will incorporate a standardized version of the string when available.
         That is, it will pass the output to a secondary FST, and check if all the outputs of that "generator" FST match for an output.
-        If so, the output will be marked with the output string in the `standardized` field [See FullAnalysis]
+        If so, the output will be marked with the output string in the `standardized` field (See :py:class:`hfst_altlab.FullAnalysis`)
+        
         :param wordform: The string to lookup.
         :param generator: The FST that will be used to fill the standardized version of the wordform from the produced analysis.
         """
@@ -166,9 +185,7 @@ class TransducerFile:
         self, analysis: str | FullAnalysis
     ) -> list[Wordform]:
         """
-        Transduce the input string. The result is a list of weighted tranductions. Each
-        weighted tranduction is a tuple with a float for the weight and a list of symbols returned in the model; that is, the symbols are
-        not concatenated into a single string.
+        Transduce the input string. The result is a list of weighted wordforms. This method is likely only useful for generator FSTs.
 
         :param analysis: The string to lookup.
         :return:
@@ -181,12 +198,19 @@ class TransducerFile:
     def symbol_count(self) -> int:
         """
         Returns the number of symbols in the sigma (the symbol table or alphabet).
+
+        .. note:: Backwards-compatible with ``hfst-optimized-lookup``
+
         """
         return len(self.transducer.get_alphabet())
 
     def invert(self) -> None:
         """
         Invert the transducer.  That is, take what previously were outputs as inputs and produce as output what previously were inputs.
+
+        Although the same process can be done directly on the terminal, the intention of this method is to provide an easy way of obtaining the inverse FST.
+
+        .. warning:: Because the ``hfst`` python package cannot currently invert HFSTOL FSTs, we first convert the transducer to an SFST formatted equivalent.  If for any reason you find out that the inverted FST is providing unexpected results, report a bug.
         """
         # Unfortunately, hfst does not directly invert hfstol FSTs.
         # We take a detour by changing to a different format.
@@ -198,6 +222,12 @@ class TransducerFile:
 
 
 class TransducerPair:
+    """
+    This class provides a useful wrapper to combine an analyser FST and a generator FST for the same language.
+    It also provides sorted search when a distance function between two strings is provided.
+
+    For the cases when only a single FST is available but sorting is desired, use the :py:meth:`hfst_altlab.TransducerPair.duplicate` factory method, which produces a TransducerPair from a single FST.
+    """
     analyser: TransducerFile
     generator: TransducerFile
     default_distance: None | Callable[[str, str], float]
@@ -209,6 +239,14 @@ class TransducerPair:
         search_cutoff: int = 60,
         default_distance: None | Callable[[str, str], float] = None,
     ):
+        """
+        On initialization, this class generates two :py:class:`hfst_altlab.TransducerFile` objects.
+
+        :param analyser: The path to the analyser FST (input: wordform, output: analyses)
+        :param generator: The path to the generator FST (input:analysis, output: wordforms)
+        :param search_cutoff: The maximum amount of time allowed for lookup on each transducer.
+        :param default_distance: An optional function providing a distance between two strings. (see :py:meth:`hfst_altlab.TransducerPair.analyse`)
+        """
         self.analyser = TransducerFile(analyser, search_cutoff)
         self.generator = TransducerFile(generator, search_cutoff)
         self.default_distance = default_distance
@@ -216,6 +254,16 @@ class TransducerPair:
     def analyse(
         self, input: Wordform | str, distance: None | Callable[[str, str], float] = None
     ) -> list[FullAnalysis]:
+        """
+        Provide a list of analysis for a particular wordform using the analyser FST of this object.
+
+        If a `distance` function is provided (or the object has a `default_distance` property),
+        the results provided by the FST are sorted using the function to compute a distance between the
+        input wordform and the standardized wordform associated with each analysis (the result of applying the generator FST, if unique)
+
+        :param input: The wordform to analyse.
+        :param distance: The sorting function for this particular method call.  When it is not `None`, it overrides `default_distance`, but only for this particular call.
+        """
         candidate = self.analyser.weighted_lookup_full_analysis(input, self.generator)
         sort_function = distance or self.default_distance
         if sort_function:
@@ -231,6 +279,11 @@ class TransducerPair:
         return candidate
 
     def generate(self, analysis: FullAnalysis | Analysis | str) -> list[Wordform]:
+        """
+        Provide a list of wordforms for a particular analysis using the generator FST of this object.
+
+        :param analysis: The analysis to generate via the FST.
+        """
         input = (
             "".join(analysis.prefixes) + analysis.lemma + "".join(analysis.suffixes)
             if isinstance(analysis, Analysis)
@@ -247,7 +300,12 @@ class TransducerPair:
         default_distance: None | Callable[[str, str], float] = None,
     ):
         """
-        Factory Method.  Generates a TransducerPair from a single FST.  You can use the is_analyser argument to tell the direction of the input FST.
+        Factory Method.  Generates a TransducerPair from a single FST.  You can use the is_analyser argument to tell the direction of the input FST.  Note that the FST will be generated twice before inverting one.
+
+        :param transducer: The location of the single FST used to generate a :py:class:`hfst_altlab.TransducerPair` object.
+        :param is_analyser: If true, then the generator FST is generated by inverting.  If false, then the analyser FST is generated by inverting.
+        :param search_cutoff: The maximum amount of time (in seconds) that the search will go on for.  The intention of a limit is to avoid search getting stuck. 
+        :param default_distance: An optional function providing a distance between two strings. (see :py:meth:`hfst_altlab.TransducerPair.analyse`)
         """
         object = cls(
             transducer,
