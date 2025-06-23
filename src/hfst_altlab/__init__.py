@@ -1,7 +1,8 @@
 import hfst
+import gzip
 from pathlib import Path
 from .types import Analysis, FullAnalysis, Wordform, as_fst_input, fst_output_format
-from typing import cast
+from typing import cast, Optional
 from collections.abc import Callable
 
 
@@ -25,7 +26,27 @@ class TransducerFile:
 
         # Now we extract the transducer and store it.
         try:
-            stream = hfst.HfstInputStream(str(filename))
+            # Workaround for FOMABIN formats
+            with open(filename, "rb") as f:
+                if f.read(3) == b"\x1f\x8b\x08":
+                    # It is a gzipped file!
+                    print(
+                        "\n".join(
+                            [
+                                f"The Transducer file {filename} is compressed.",
+                                "Unfortunately, our library cannot currently handle directly compressed file",
+                                "(e.g. .fomabin).  Please decompress the file first.",
+                                "If you don't know how, you can use the hfst_altlab.decompress_foma function as follows:\n\n",
+                                "from hfst_altlab import decompress_foma",
+                                'with open(output_name, "wb") as f:',
+                                f'  with decompress_foma("{str(filename)}") as fst:',
+                                f"    f.write(fst.read())\n\n",
+                            ]
+                        )
+                    )
+                    raise ValueError(filename)
+                else:
+                    stream = hfst.HfstInputStream(str(filename))
         except hfst.exceptions.NotTransducerStreamException as e:
             # Expected message for backwards compatibility.
             e.args = ("wrong or corrupt file?",)
@@ -41,7 +62,7 @@ class TransducerFile:
         stream.close()
         self.transducer = transducers[0]
         if self.transducer.is_infinitely_ambiguous():
-            raise RuntimeWarning("The transducer is infinitely ambiguous.")
+            print(f"Warning: The transducer at {filename} is infinitely ambiguous.")
         if not (
             self.transducer.get_type()
             in [
@@ -50,6 +71,7 @@ class TransducerFile:
             ]
         ):
             print("Transducer not optimized.  Optimizing...")
+            self.transducer.convert(hfst.ImplementationType.HFST_OLW_TYPE)
             self.transducer.lookup_optimize()
             print("Done.")
 
@@ -114,7 +136,7 @@ class TransducerFile:
         )
 
     def weighted_lookup_full_analysis(
-        self, wordform: str | Wordform, generator: "TransducerFile" | None = None
+        self, wordform: str | Wordform, generator: Optional["TransducerFile"] = None
     ) -> list[FullAnalysis]:
         """
         Transduce a wordform into a list of analyzed outputs.
@@ -174,29 +196,48 @@ class TransducerFile:
         """
         return len(self.transducer.get_alphabet())
 
+    def invert(self) -> None:
+        """
+        Invert the transducer.  That is, take what previously were outputs as inputs and produce as output what previously were inputs.
+        """
+        # Unfortunately, hfst does not directly invert hfstol FSTs.
+        # We take a detour by changing to a different format.
+        # We do not use foma here just in case we are not dealing with a system that has foma.
+        self.transducer.convert(hfst.ImplementationType.SFST_TYPE)
+        self.transducer.invert()
+        self.transducer.lookup_optimize()
+        return None
+
 
 class TransducerPair:
     analyser: TransducerFile
     generator: TransducerFile
+    default_distance: None | Callable[[str, str], float]
 
     def __init__(
-        self, analyser: Path | str, generator: Path | str, search_cutoff: int = 60
+        self,
+        analyser: Path | str,
+        generator: Path | str,
+        search_cutoff: int = 60,
+        default_distance: None | Callable[[str, str], float] = None,
     ):
         self.analyser = TransducerFile(analyser, search_cutoff)
         self.generator = TransducerFile(generator, search_cutoff)
+        self.default_distance = default_distance
 
     def analyse(
         self, input: Wordform | str, distance: None | Callable[[str, str], float] = None
     ) -> list[FullAnalysis]:
         candidate = self.analyser.weighted_lookup_full_analysis(input, self.generator)
-        if distance:
+        sort_function = distance or self.default_distance
+        if sort_function:
             # If there is a distance function, use that for sorting
             source = str(input)
 
             def key(other: FullAnalysis) -> float:
                 if other.standardized is None:
                     return float("+Infinity")
-                return distance(source, other.standardized)
+                return sort_function(source, other.standardized)
 
             candidate.sort(key=key)
         return candidate
@@ -208,3 +249,34 @@ class TransducerPair:
             else analysis
         )
         return self.generator.weighted_lookup_full_wordform(input)
+
+    @classmethod
+    def duplicate(
+        cls,
+        transducer: Path | str,
+        is_analyser: bool = False,
+        search_cutoff: int = 60,
+        default_distance: None | Callable[[str, str], float] = None,
+    ):
+        """
+        Factory Method.  Generates a TransducerPair from a single FST.  You can use the is_analyser argument to tell the direction of the input FST.
+        """
+        object = cls(
+            transducer,
+            transducer,
+            search_cutoff=search_cutoff,
+            default_distance=default_distance,
+        )
+        if is_analyser:
+            object.generator.invert()
+        else:
+            object.analyser.invert()
+        return object
+
+
+def decompress_foma(filename: Path | str):
+    """
+    Single wrapper around gzip. This is to increase readability.
+    This method is not used, but it is suggested as a way to debug the process of building a Transducer from a FOMA object.
+    """
+    return gzip.open(filename)
