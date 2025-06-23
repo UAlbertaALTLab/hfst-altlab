@@ -50,7 +50,7 @@ class Analysis(NamedTuple):
     """
 
 
-def _parse_analysis(letters_and_tags: list[str]) -> Analysis:
+def _parse_analysis(letters_and_tags: tuple[str, ...]) -> Analysis:
     prefix_tags: list[str] = []
     lemma_chars: list[str] = []
     suffix_tags: list[str] = []
@@ -74,7 +74,7 @@ def _parse_analysis(letters_and_tags: list[str]) -> Analysis:
 
 class FullAnalysis:
     weight: float
-    flag_diacritics: list[str]
+    tokens: tuple[str, ...]
     analysis: Analysis
     standardized: str | None
 
@@ -91,47 +91,58 @@ class FullAnalysis:
         return self.analysis.suffixes
 
     def __init__(
-        self, weight: float, tokens: list[str], standardized: str | None = None
+        self, weight: float, tokens: tuple[str, ...], standardized: str | None = None
     ):
         self.weight = weight
-        self.flag_diacritics = [x for x in tokens if x and x != "@_EPSILON_SYMBOL_@"]
-        self.analysis = _parse_analysis(self.flag_diacritics)
+        self.tokens = tuple(x for x in tokens if x and x != "@_EPSILON_SYMBOL_@")
+        self.analysis = _parse_analysis(self.tokens)
         self.standardized = standardized
 
     def __str__(self):
         return f"FullAnalysis(weight={self.weight}, prefixes={self.analysis.prefixes}, lemma={self.analysis.lemma}, suffixes={self.analysis.suffixes})"
 
     def __repr__(self):
-        return f"FullAnalysis(weight={self.weight}, tokens={self.flag_diacritics})"
+        return f"FullAnalysis(weight={self.weight}, tokens={self.tokens})"
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return (
-                self.weight == other.weight
-                and self.flag_diacritics == other.flag_diacritics
-            )
+            return self.weight == other.weight and self.tokens == other.tokens
         else:
             return False
 
+    def __hash__(self):
+        return hash((self.weight,) + self.tokens)
+
     def as_fst_input(self) -> str:
-        return fst_output_format(self.flag_diacritics)
+        return fst_output_format(self.tokens)
 
 
 class Wordform:
     weight: float
-    tokens: list[str]
+    tokens: tuple[str, ...]
     wordform: str
 
-    def __init__(self, weight: float, tokens: list[str]):
+    def __init__(self, weight: float, tokens: tuple[str, ...]):
         self.weight = weight
         self.tokens = tokens
-        self.wordform = "".join(tokens)
+        self.wordform = "".join(
+            x for x in tokens if x and not is_diacritic(x) and x != "@_EPSILON_SYMBOL_@"
+        )
 
     def __str__(self):
         return self.wordform
 
     def __repr__(self):
         return f"Wordform(weight={self.weight}, wordform={self.wordform})"
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.weight == other.weight and self.tokens == other.tokens
+        else:
+            return False
+
+    def __hash__(self):
+        return hash((self.weight,) + self.tokens)
 
     def as_fst_input(self):
         return self.wordform
@@ -144,5 +155,5 @@ def as_fst_input(data: str | FullAnalysis | Wordform) -> str:
         return data.as_fst_input()
 
 
-def fst_output_format(tokens: list[str]) -> str:
+def fst_output_format(tokens: tuple[str, ...]) -> str:
     return "".join(x for x in tokens if not is_diacritic(x))
