@@ -81,9 +81,7 @@ class TransducerFile:
         surface forms.
 
         :param words: list of words to lookup
-        :type words: list[str]
         :return: a dictionary mapping words in the input to a set of its tranductions
-        :rtype: dict[str, set[str]]
         """
         return {word: set(self.lookup(word)) for word in words}
 
@@ -92,10 +90,9 @@ class TransducerFile:
         Lookup the input string, returning a list of tranductions.  This is
         most similar to using ``hfst-optimized-lookup`` on the command line.
 
-        :param str string: The string to lookup.
+        :param input: The string to lookup.
         :return: list of analyses as concatenated strings, or an empty list if the input
             cannot be analyzed.
-        :rtype: list[str]
         """
         return ["".join(transduction) for transduction in self.lookup_symbols(input)]
 
@@ -111,9 +108,7 @@ class TransducerFile:
         tranduction is a list of symbols returned in the model; that is, the symbols are
         not concatenated into a single string.
 
-        :param str input: The string to lookup.
-        :return:
-        :rtype: list[list[str]]
+        :param input: The string to lookup.
         """
         return [
             [x for x in analysis.flag_diacritics if x and not hfst.is_diacritic(x)]
@@ -126,9 +121,8 @@ class TransducerFile:
         weighted tranduction is a tuple with a number for the weight and a list of symbols returned in the model; that is, the symbols are
         not concatenated into a single string.
 
-        :param str input: The string to lookup.
+        :param input: The string to lookup.
         :return:
-        :rtype: list[tuple[float,list[str]]]
         """
         return cast(
             list[tuple[str, list[str]]],
@@ -143,9 +137,8 @@ class TransducerFile:
         If a generator is provided, it will incorporate a standardized version of the string when available.
         That is, it will pass the output to a secondary FST, and check if all the outputs of that "generator" FST match for an output.
         If so, the output will be marked with the output string in the `standardized` field [See FullAnalysis]
-        :param str input: The string to lookup.
-        :return:
-        :rtype: list[FullAnalysis]
+        :param wordform: The string to lookup.
+        :param generator: The FST that will be used to fill the standardized version of the wordform from the produced analysis.
         """
         if generator:
 
@@ -177,9 +170,8 @@ class TransducerFile:
         weighted tranduction is a tuple with a float for the weight and a list of symbols returned in the model; that is, the symbols are
         not concatenated into a single string.
 
-        :param str input: The string to lookup.
+        :param analysis: The string to lookup.
         :return:
-        :rtype: list[tuple[float,list[str]]]
         """
         return [
             Wordform(float(weight), tokens)
@@ -188,11 +180,7 @@ class TransducerFile:
 
     def symbol_count(self) -> int:
         """
-        symbol_count() -> int
-
         Returns the number of symbols in the sigma (the symbol table or alphabet).
-
-        :rtype: int
         """
         return len(self.transducer.get_alphabet())
 
