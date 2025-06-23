@@ -32,7 +32,7 @@ jobs:
           cache: 'pipenv'
       
       - name: Build documentation
-        working-directory: ./
+        working-directory: ./docs/
         run: |
           pip install pipenv
           pipenv install --dev
