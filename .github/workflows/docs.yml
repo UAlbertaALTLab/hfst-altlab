@@ -27,6 +27,9 @@ jobs:
 
       # Build python environment
       - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pipenv'
       
       - name: Build documentation
         working-directory: ./
