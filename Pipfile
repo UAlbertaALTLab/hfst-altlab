@@ -16,6 +16,7 @@ twine = "*"
 build = "*"
 sphinx = "*"
 myst-parser = "*"
+sphinx-autodoc-typehints = "*"
 
 [scripts]
 get-hfstol = "./mini-lfs-client.py UAlbertaALTLab morphodict src/crkeng/resources/fst/crk-relaxed-analyzer-for-dictionary.hfstol"
