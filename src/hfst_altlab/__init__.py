@@ -226,6 +226,13 @@ class TransducerPair:
     It also provides sorted search when a distance function between two strings is provided.
 
     For the cases when only a single FST is available but sorting is desired, use the :py:meth:`hfst_altlab.TransducerPair.duplicate` factory method, which produces a TransducerPair from a single FST.
+
+    On initialization, this class generates two :py:class:`hfst_altlab.TransducerFile` objects.
+
+    :param analyser: The path to the analyser FST (input: wordform, output: analyses)
+    :param generator: The path to the generator FST (input:analysis, output: wordforms)
+    :param search_cutoff: The maximum amount of time allowed for lookup on each transducer.
+    :param default_distance: An optional function providing a distance between two strings. (see :py:meth:`hfst_altlab.TransducerPair.analyse`)
     """
 
     analyser: TransducerFile
@@ -239,14 +246,6 @@ class TransducerPair:
         search_cutoff: int = 60,
         default_distance: None | Callable[[str, str], float] = None,
     ):
-        """
-        On initialization, this class generates two :py:class:`hfst_altlab.TransducerFile` objects.
-
-        :param analyser: The path to the analyser FST (input: wordform, output: analyses)
-        :param generator: The path to the generator FST (input:analysis, output: wordforms)
-        :param search_cutoff: The maximum amount of time allowed for lookup on each transducer.
-        :param default_distance: An optional function providing a distance between two strings. (see :py:meth:`hfst_altlab.TransducerPair.analyse`)
-        """
         self.analyser = TransducerFile(analyser, search_cutoff)
         self.generator = TransducerFile(generator, search_cutoff)
         self.default_distance = default_distance
