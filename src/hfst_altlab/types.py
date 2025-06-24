@@ -102,21 +102,21 @@ class FullAnalysis:
     @property
     def prefixes(self) -> tuple[str, ...]:
         """
-        For simplicity, prefixes can be accessed directly as if this were an :py:class:`hfst_altlab:Analysis` object.
+        For simplicity, prefixes can be accessed directly as if this were an :py:class:`hfst_altlab.Analysis` object.
         """
         return self.analysis.prefixes
 
     @property
     def lemma(self) -> str:
         """
-        For simplicity, the lemma can be accessed directly as if this were an :py:class:`hfst_altlab:Analysis` object.
+        For simplicity, the lemma can be accessed directly as if this were an :py:class:`hfst_altlab.Analysis` object.
         """
         return self.analysis.lemma
 
     @property
     def suffixes(self) -> tuple[str, ...]:
         """
-        For simplicity, suffixes can be accessed directly as if this were an :py:class:`hfst_altlab:Analysis` object.
+        For simplicity, suffixes can be accessed directly as if this were an :py:class:`hfst_altlab.Analysis` object.
         """
         return self.analysis.suffixes
 
