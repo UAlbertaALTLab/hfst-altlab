@@ -102,8 +102,15 @@ The key use case for TransducerPair is to combine a descriptive analiser FST and
 
 We provide a convenience factory method to generate a TransducerPair using a single FST by inverting it to provide the other FST.
 
-It can also be used to provide a way to sort the outputs of the Analysis FST.  For example, using Levenshtein distances:
+It can also be used to provide a way to sort the outputs of the Analysis FST.  For example, to use Levenshtein distances to sort analysis outputs:
 
+::
+    import Levenshtein
+    
+    p = TransducerPair.duplicate("ojibwe.fomabin", default_distance = Levenshtein.distance)
+
+
+If you only want to use a particular distance function *sometimes*, you can provide it as an extra argument to the :py:meth:`hfst_altlab.TransducerPair.analyse` function.
 
 .. autoclass:: hfst_altlab.TransducerPair
     :members:
