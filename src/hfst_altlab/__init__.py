@@ -163,7 +163,7 @@ class TransducerFile:
             def generate(tokens: tuple[str, ...]) -> str | None:
                 entry: str | None = None
                 for _, output in generator._weighted_lookup(fst_output_format(tokens)):
-                    candidate = "".join(output)
+                    candidate = "".join(x for x in output if x and not hfst.is_diacritic(x))
                     if entry and entry != candidate:
                         return None
                     else:
