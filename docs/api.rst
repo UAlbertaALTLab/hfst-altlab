@@ -60,8 +60,8 @@ If a compressed FOMA FST is used, a `ValueError` exception is raised and instruc
 Those instructions can be used, for example, from a python interpreter.
 
 For example, if you try to build a :py:class:`hfst_altlab.TransducerPair` from a compressed ``.fomabin`` file like ``"ojibwe.hfstol"``, you should see the following error::
-    >>> p = hfst_altlab.TransducerPair.duplicate("/home/fbanados/code/OjibweMorph/FST/generated/ojibwe.fomabin")
-    The Transducer file /home/fbanados/code/OjibweMorph/FST/generated/ojibwe.fomabin is compressed.
+    >>> p = hfst_altlab.TransducerPair.duplicate("ojibwe.fomabin")
+    The Transducer file ojibwe.fomabin is compressed.
     Unfortunately, our library cannot currently handle directly compressed files (e.g. .fomabin).
     Please decompress the file first.
     If you don't know how, you can use the hfst_altlab.decompress_foma function as follows:
