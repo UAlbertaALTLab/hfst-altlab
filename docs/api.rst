@@ -6,9 +6,9 @@ Basic usage
 ***********
 
 ``hfst-altlab`` is intended to be backwards compatible with `hfst-optimized-lookup`_.
-But that package only provides a very simple interface, and requires the FST to be already formatted in the unweighted `.hfstol` format.
+But that package only provides a very simple interface, and requires the FST to be already formatted in the unweighted ``.hfstol`` format.
 This package is a wrapper over the `hfst`_ package, which consumes considerably more space than `hfst-optimized-lookup`_.
-If space is a strict constraint, we recommend converting your FSTs to the `hfstol` format and using the other package,
+If space is a strict constraint, we recommend converting your FSTs to the ``.hfstol`` format and using the other package,
 but you will lose access to sorting, flag diacritics, and weights. 
 
 .. _hfst-optimized-lookup: http://github.com/UAlbertaALTLab/hfst-optimized-lookup
@@ -17,7 +17,7 @@ but you will lose access to sorting, flag diacritics, and weights.
 Examples of usage
 =================
 
-If you have two FSTs, for example, `"analyser-dict-gt-desc.hfstol"` and `"generator-dict-gt-norm.hfstol"`, you can perform any searches you want::
+If you have two FSTs, for example, ``"analyser-dict-gt-desc.hfstol"`` and ``"generator-dict-gt-norm.hfstol"``, you can perform any searches you want::
     
     from hfst_altlab import TransducerPair
     
@@ -31,7 +31,7 @@ If you have two FSTs, for example, `"analyser-dict-gt-desc.hfstol"` and `"genera
 
 If you have a single FST, you can use either :py:class:`hfst_altlab.TransducerFile` objects directly, or generate the appropriate generator and analyser versions for the FST.  You can do this directly from the package. We recommend to use :py:meth:`hfst_altlab.TransducerPair.duplicate` as we intend to provide extended functionality in the future that depends on knowing both directions of the FST.
 
-For example, if you have an `ojibwe.fomabin` FST, you can just use::
+For example, if you have an ``ojibwe.fomabin`` FST, you can just use::
     
     p = TransducerPair.duplicate("ojibwe.fomabin")
 
@@ -55,14 +55,14 @@ The key is the comparison of both wordforms and analyses *includes flag diacriti
 
 Dealing with FOMA FSTs
 ======================
-To deal with FOMA-formatted FSTs, `foma` must be installed in the machine.  The FST also must not be compressed.
-If a compressed FOMA FST is used, a `ValueError` exception is raised and instructions to build a decompressed version of the FST are printed out. 
+To deal with FOMA-formatted FSTs, ``foma`` must be installed in the machine.  The FST also must not be compressed.
+If a compressed FOMA FST is used, a ``ValueError`` exception is raised and instructions to build a decompressed version of the FST are printed out. 
 Those instructions can be used, for example, from a python interpreter.
 
 For example, if you try to build a :py:class:`hfst_altlab.TransducerPair` from a compressed ``.fomabin`` file like ``"ojibwe.hfstol"``, you should see the following error:
 
 ::
-    
+
     >>> p = hfst_altlab.TransducerPair.duplicate("ojibwe.fomabin")
     The Transducer file ojibwe.fomabin is compressed.
     Unfortunately, our library cannot currently handle directly compressed files (e.g. .fomabin).
