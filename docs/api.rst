@@ -65,14 +65,14 @@ For example, if you try to build a :py:class:`hfst_altlab.TransducerPair` from a
     Unfortunately, our library cannot currently handle directly compressed files (e.g. .fomabin).
     Please decompress the file first.
     If you don't know how, you can use the hfst_altlab.decompress_foma function as follows:
-    
-    
+     
+     
     from hfst_altlab import decompress_foma
     with open(output_name, "wb") as f:
       with decompress_foma("ojibwe.fomabin") as fst:
         f.write(fst.read())
-    
-    
+     
+         
     ValueError: ojibwe.fomabin
 
 Do not forget to provide the name of the file to store the decompressed FOMA, in the example, ``output_name``.
