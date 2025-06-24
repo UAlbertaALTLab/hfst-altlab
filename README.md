@@ -1,7 +1,7 @@
 hfst-altlab
 ===========
 
-A wrapper on the [hfst][] python package, currently working as a replacement for [hfst-optimized-lookup][], built for [itwêwina][].
+A wrapper on the [hfst][] python package, currently working as a replacement for [hfst-optimized-lookup][], built originally for [itwêwina][].
 
 This module helps to use both analyser and generator FSTs for multiple linguistic uses and language tools.
 
