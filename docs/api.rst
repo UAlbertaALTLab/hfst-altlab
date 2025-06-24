@@ -18,10 +18,11 @@ Examples of usage
 =================
 
 If you have two FSTs, for example, `"analyser-dict-gt-desc.hfstol"` and `"generator-dict-gt-norm.hfstol"`, you can perform any searches you want::
-
+    
     from hfst_altlab import TransducerPair
-
-    p = TransducerPair(analyser="analyser-dict-gt-desc.hfstol", generator="generator-dict-gt-norm.hfstol")
+    
+    p = TransducerPair(analyser="analyser-dict-gt-desc.hfstol",
+                       generator="generator-dict-gt-norm.hfstol")
 
 .. note: Most likely you will want to use a **strict** or **normative** generator.  Descriptive generators usually have a lot of ambiguity and do not produce good (nor fast) results.
 .. note: For future compatibility, Analyses and Wordforms are targeted towards weighted FSTs.  If your FST is unweighted, all results will have a default weight (likely `0.0`, but you should not rely on the value provided).
@@ -31,6 +32,7 @@ If you have two FSTs, for example, `"analyser-dict-gt-desc.hfstol"` and `"genera
 If you have a single FST, you can use either :py:class:`hfst_altlab.TransducerFile` objects directly, or generate the appropriate generator and analyser versions for the FST.  You can do this directly from the package. We recommend to use :py:meth:`hfst_altlab.TransducerPair.duplicate` as we intend to provide extended functionality in the future that depends on knowing both directions of the FST.
 
 For example, if you have an `ojibwe.fomabin` FST, you can just use::
+    
     p = TransducerPair.duplicate("ojibwe.fomabin")
 
 Then we can use methods :py:meth:`hfst_altlab.TransducerPair.generate` and :py:meth:`hfst_altlab.TransducerPair.analyse` to query the FSTs::
@@ -63,14 +65,14 @@ For example, if you try to build a :py:class:`hfst_altlab.TransducerPair` from a
     Unfortunately, our library cannot currently handle directly compressed files (e.g. .fomabin).
     Please decompress the file first.
     If you don't know how, you can use the hfst_altlab.decompress_foma function as follows:
-
-
+    
+    
     from hfst_altlab import decompress_foma
     with open(output_name, "wb") as f:
       with decompress_foma("ojibwe.fomabin") as fst:
         f.write(fst.read())
-
-
+    
+    
     ValueError: ojibwe.fomabin
 
 Do not forget to provide the name of the file to store the decompressed FOMA, in the example, ``output_name``.
