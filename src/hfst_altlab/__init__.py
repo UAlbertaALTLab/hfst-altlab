@@ -15,13 +15,12 @@ class TransducerFile:
     added benefit of regaining access to weighted FSTs without extra work.
     Note that lookup will only be fast if the input file has been processed
     into the hfstol format.
+
+    :param filename: The path of the transducer
+    :param search_cutoff: The maximum amount of time (in seconds) that the search will go on for.  The intention of a limit is to avoid search getting stuck.  Defaults to a minute.
     """
 
     def __init__(self, filename: Path | str, search_cutoff: int = 60):
-        """
-        :param filename: The path of the transducer
-        :param search_cutoff: The maximum amount of time (in seconds) that the search will go on for.  The intention of a limit is to avoid search getting stuck.  Defaults to a minute.
-        """
         self.cutoff = search_cutoff
 
         if not Path(filename).exists():
