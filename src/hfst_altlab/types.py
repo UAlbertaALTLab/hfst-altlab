@@ -95,7 +95,7 @@ class FullAnalysis:
 
     The analysis is a split of the non-diacritic symbols in the tokens list.  We consider as the lemma the concatenation of all single-character symbols.  Prefixes are all multi-character symbols happening before the first single-character symbol, and suffixes are all multi-character symbols happening after that.
 
-    .. note: The assumption of single-character symbols will conflict with multi-character emojis (for example, skin toned emojis). Although we are currently keeping this implementation, an alternative future approach would be to define prefixes as all multi-character symbols terminating in ``+``, suffixes as all multi-character symbols beginning with ``+``, and the lemma to be the concatenation of all other symbols.
+    .. note:: The assumption of single-character symbols will conflict with multi-character emojis (for example, skin toned emojis). Although we are currently keeping this implementation, an alternative future approach would be to define prefixes as all multi-character symbols terminating in ``+``, suffixes as all multi-character symbols beginning with ``+``, and the lemma to be the concatenation of all other symbols.
     """
     standardized: str | None
 
