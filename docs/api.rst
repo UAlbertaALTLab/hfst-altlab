@@ -85,14 +85,14 @@ Class API
 *********
 
 TransducerFile
---------------
+==============
 
 .. autoclass:: hfst_altlab.TransducerFile
     :members:
 
 
 TransducerPair
---------------
+==============
 This class is a wrapper on :py:class:`hfst_altlab.TransducerFile` that has several convenient methods
 to deal with two complementary FSTs that go in opposite directions, an analyser and a generator.
 
@@ -109,20 +109,21 @@ It can also be used to provide a way to sort the outputs of the Analysis FST.  F
     :members:
 
 Wordform
---------
+========
 .. autoclass:: hfst_altlab.Wordform
     :members:
 
 
 Analysis
---------
-The same class as in `hfst-optimized-lookup`_.
+========
+
+Analysis is the same class as in `hfst-optimized-lookup`_.
 
 .. autoclass:: hfst_altlab.Analysis
     :members:
 
 FullAnalysis
-------------
+============
 An extension of :py:class:`hfst_altlab.Analysis`, to include possible weights, flag diacritics, and a standardized version of the wordform, obtained by a separate FST.
 
 .. autoclass:: hfst_altlab.FullAnalysis
